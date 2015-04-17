@@ -1,1 +1,109 @@
-//placeholder
+/**
+ *  SmartCoffee
+ *
+ *  Copyright 2015 Cassidy Nelemans
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ *
+ *	For this SmartApp to work, a virtual On/Off switch has to first be created in the IDE. This virtual On/Off switch will be 
+ *	used as a middle man to check on whether there is water in the coffee water reservoir before powering it on.
+ *
+ */
+
+
+
+definition(
+    name: "SmartCoffee",
+    namespace: "smartthings",
+    author: "Cassidy Nelemans",
+    description: "Turns a coffee maker on based on whether there is water in the water reservoir. Notifies when coffee starts brewing and when it completes.",
+    category: "My Apps",
+    iconUrl: "http://i62.tinypic.com/2d7g09u.jpg",
+    iconX2Url: "http://i62.tinypic.com/2d7g09u.jpg"
+)
+
+
+preferences {
+	section("When this virtual switch is turned on..."){
+
+		input "theSwitch", "capability.switch", title: "What virtual switch?", required: true
+	}
+	section("Check that this water sensor detects water...") {
+
+		input "alarm", "capability.waterSensor", title: "Is there water in here?", required: true
+	}
+	section("Before turning on this coffee maker...") {
+
+		input "coffee", "capability.switch", title: "What coffee maker?", required: true
+	}
+
+}
+
+
+def installed() {
+	subscribe(theSwitch, "switch.On", onHandler)
+    subscribe(alarm, "water.dry", waterDryHandler)
+}
+
+
+def updated() {
+
+	unsubscribe()
+	subscribe(theSwitch, "switch.On", onHandler)
+    subscribe(alarm, "water.dry", waterDryHandler)
+}
+
+def onHandler(evt) {
+	//Do these things when the virtual switch is turned on
+    checkWater()
+    }
+    
+	// Check the water sensor status
+	def checkWater(evt) {
+    	def latestValue = alarm.latestValue("water")
+        def wetOrDry = latestValue
+        
+        
+        if (wetOrDry == "wet") {
+        	//Do these things if the virtual switch is turned on and the water tank is wet
+        	log.debug "The tank is ${latestValue}. Turning on the coffee maker."
+            	//Sending push notification
+            sendPush("Your coffee is brewing...")
+            	//Turning on the coffee maker
+       		coffee.on()
+        		}
+        if (wetOrDry == "dry") {
+        	//Do these things if the virtual switch is turned on and the water tank is dry
+        	log.debug "The tank is ${latestValue}. Not turning on the coffee maker."
+            	//Sending push notification...
+            sendPush("There is no water in the SmartCoffee tank. Cancelling brew...")
+            	//Turning off the virtual switch
+        	theSwitch.off()
+        	}
+        }
+        
+        
+    def waterDryHandler(evt) {
+    	def switchValue = theSwitch.latestValue("switch")
+        if (switchValue == "on") {
+        //Do these things if the virtual switch is on and the water sensor switches from wet to dry
+    		log.debug "The tank is now empty. Notifying that the coffee is done."
+        		//Sending push notification
+            sendPush("Your coffee is done!")
+            	//Turning off the virtual switch
+            theSwitch.off()
+    	}
+    	if (switchValue == "off") {
+        //Do these things if the virtual switch is off and the water sensor switches from wet to dry
+        log.debug "The virtual switch is off. Doing nothing."
+        	}
+        }
