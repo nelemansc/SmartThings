@@ -35,17 +35,21 @@ definition(
 preferences {
 	section("When this virtual switch is turned on..."){
 
-		input "theSwitch", "capability.switch", title: "What virtual switch?", required: true
+		input "theSwitch", "capability.switch", title: "What virtual switch?", required: true, multiple: false
 	}
 	section("Check that this water sensor detects water...") {
 
-		input "alarm", "capability.waterSensor", title: "Is there water in here?", required: true
+		input "alarm", "capability.waterSensor", title: "Is there water in here?", required: true, multiple: false
 	}
 	section("Before turning on this coffee maker...") {
 
-		input "coffee", "capability.switch", title: "What coffee maker?", required: true
+		input "coffee", "capability.switch", title: "What coffee maker?", required: true, multiple: false
 	}
-
+    section("(Optional) HAM Bridge integration", hideable: true, hidden: true) {
+		input "HAMBcommand", "text", title: "Send this command to HAM Bridge when the coffee is done", required: false
+		input "server", "text", title: "Server IP", description: "Your HAM Bridger Server IP", required: false
+		input "port", "number", title: "Port", description: "Port Number", required: false
+    }
 }
 
 
@@ -77,8 +81,10 @@ def onHandler(evt) {
         	//Do these things if the virtual switch is turned on and the water tank is wet
         	log.debug "The tank is ${latestValue}. Turning on the coffee maker."
             	//Sending push notification
+            log.debug "Sending push notification"
             sendPush("Your coffee is brewing...")
             	//Turning on the coffee maker
+            log.debug "Turning on the coffee maker"
        		coffee.on()
         		}
         if (wetOrDry == "dry") {
@@ -87,6 +93,7 @@ def onHandler(evt) {
             	//Sending push notification...
             sendPush("There is no water in the SmartCoffee tank. Cancelling brew...")
             	//Turning off the virtual switch
+            log.debug "Turning off the virtual switch"
         	theSwitch.off()
         	}
         }
@@ -97,13 +104,30 @@ def onHandler(evt) {
         if (switchValue == "on") {
         //Do these things if the virtual switch is on and the water sensor switches from wet to dry
     		log.debug "The tank is now empty. Notifying that the coffee is done."
-        		//Sending push notification
-            sendPush("Your coffee is done!")
             	//Turning off the virtual switch
             theSwitch.off()
+            	// Delay push notification
+            log.debug "Pushing notification in ${secondsAfterClosed} seconds."
+            sendPush()
+
     	}
     	if (switchValue == "off") {
         //Do these things if the virtual switch is off and the water sensor switches from wet to dry
         log.debug "The virtual switch is off. Doing nothing."
         	}
+        }
+        
+ 	def sendHttp() {
+		def ip = "${settings.server}:${settings.port}"
+		def deviceNetworkId = "1234"
+sendHubCommand(new physicalgraph.device.HubAction("""GET /?${settings.HAMBcommand} HTTP/1.1\r\nHOST: $ip\r\n\r\n""", physicalgraph.device.Protocol.LAN, "${deviceNetworkId}"))
+}
+		
+	def sendPush()	{
+    		//Sending push notification
+        log.debug "Sending push notification to for coffee being done"
+    	sendPush("Your coffee is done!")
+        	//Send command to HAM Bridge. Used for a voice notification
+        log.debug "Sending HAM Bridge command - ${settings.HAMBcommand}"
+        sendHttp()
         }
