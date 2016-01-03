@@ -20,8 +20,8 @@
  */
 definition(
 	name: "Alexa Voice Notifications",
-	namespace: "smartthings",
-	author: "SmartThings",
+	namespace: "nelemansc",
+	author: "nelemansc",
 	description: "Play a sound when the mode changes or other events occur.",
 	category: "SmartThings Labs",
 	iconUrl: "https://d3rnbxvnd0hlox.cloudfront.net/images/channels/1172726678/icons/large.png",
