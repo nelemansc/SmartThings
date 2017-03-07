@@ -106,6 +106,8 @@ def onHandler(evt) {
     		log.debug "The tank is now empty. Notifying that the coffee is done."
             	//Turning off the virtual switch
             theSwitch.off()
+	    //Added call to shut off the power source to the coffee pot as well. In case the coffee pot doesn't have auto off
+	    coffee.off()
             	// Delay push notification
             log.debug "Pushing notification in ${secondsAfterClosed} seconds."
             sendPush()
